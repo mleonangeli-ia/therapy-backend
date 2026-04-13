@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Env / secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store

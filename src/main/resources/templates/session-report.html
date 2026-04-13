@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Reporte Sesión ' + ${sessionNumber}">Reporte de Sesión</title>
+  <style>
+    /* ── Reset ─────────────────────────────────────────────── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 11pt;
+      color: #1a1a2e;
+      line-height: 1.55;
+      background: #ffffff;
+    }
+
+    /* ── Page layout ────────────────────────────────────────── */
+    @page {
+      size: A4;
+      margin: 2.2cm 2cm 2.5cm 2cm;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      border-bottom: 3px solid #6c63ff;
+      padding-bottom: 14px;
+      margin-bottom: 22px;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand {
+      font-size: 20pt;
+      font-weight: 700;
+      color: #6c63ff;
+      letter-spacing: -0.5px;
+    }
+    .brand-sub {
+      font-size: 9pt;
+      color: #888;
+      margin-top: 2px;
+    }
+    .header-meta {
+      text-align: right;
+      font-size: 9pt;
+      color: #555;
+    }
+    .header-meta .session-label {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    /* ── Disclaimer ─────────────────────────────────────────── */
+    .disclaimer {
+      background: #fff8e1;
+      border-left: 4px solid #ffc107;
+      padding: 8px 12px;
+      font-size: 9pt;
+      color: #5d4037;
+      border-radius: 2px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Patient info ───────────────────────────────────────── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 24px;
+      background: #f7f7fb;
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+    .info-item label {
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #888;
+      display: block;
+    }
+    .info-item span {
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    /* ── Mood bar ────────────────────────────────────────────── */
+    .mood-section {
+      margin-bottom: 24px;
+    }
+    .mood-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .mood-label { font-size: 9pt; color: #666; width: 80px; flex-shrink: 0; }
+    .mood-track {
+      flex: 1;
+      height: 8px;
+      background: #eee;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .mood-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, #ff7675, #6c63ff);
+    }
+    .mood-value { font-weight: 700; font-size: 10pt; width: 24px; }
+
+    /* ── Sections ───────────────────────────────────────────── */
+    .section {
+      margin-bottom: 20px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #6c63ff;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e8e4ff;
+    }
+    .section-body {
+      font-size: 10.5pt;
+      color: #333;
+    }
+
+    /* ── Tag list ───────────────────────────────────────────── */
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .tag {
+      background: #ede9fe;
+      color: #5b21b6;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 9pt;
+      font-weight: 500;
+    }
+
+    /* ── Risk indicator ─────────────────────────────────────── */
+    .risk-none {
+      background: #e6f7ee;
+      color: #1e7e4a;
+      border-left: 4px solid #28a745;
+      padding: 7px 12px;
+      border-radius: 2px;
+      font-size: 10pt;
+    }
+    .risk-alert {
+      background: #fff3f3;
+      color: #b91c1c;
+      border-left: 4px solid #ef4444;
+      padding: 7px 12px;
+      border-radius: 2px;
+      font-size: 10pt;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 8pt;
+      color: #bbb;
+      padding: 10px 20px;
+      border-top: 1px solid #eee;
+    }
+
+    /* ── Two-column layout for some sections ────────────────── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="brand">TherapyAI</div>
+        <div class="brand-sub">Plataforma de acompañamiento terapéutico con IA</div>
+      </div>
+      <div class="header-meta">
+        <div class="session-label" th:text="'Sesión ' + ${sessionNumber}">Sesión 1</div>
+        <div th:text="${generatedAt}">1 de enero 2025 a las 10:00</div>
+        <div style="color:#aaa;margin-top:2px;">CONFIDENCIAL — Para uso profesional</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    <strong>Aviso importante:</strong> Este reporte fue generado automáticamente por IA y está
+    destinado exclusivamente para revisión por un profesional de salud mental licenciado.
+    <strong>No constituye diagnóstico clínico ni recomendación terapéutica.</strong>
+  </div>
+
+  <!-- Patient + session info -->
+  <div class="info-grid">
+    <div class="info-item">
+      <label>Paciente</label>
+      <span th:text="${patientName}">Nombre Apellido</span>
+    </div>
+    <div class="info-item">
+      <label>Número de sesión</label>
+      <span th:text="${sessionNumber} + ' de 10'">1 de 10</span>
+    </div>
+    <div class="info-item" th:if="${session.startedAt}">
+      <label>Fecha de sesión</label>
+      <span th:text="${#temporals.format(session.startedAt, 'dd/MM/yyyy HH:mm')}">01/01/2025</span>
+    </div>
+    <div class="info-item" th:if="${durationMinutes}">
+      <label>Duración</label>
+      <span th:text="${durationMinutes} + ' minutos'">45 minutos</span>
+    </div>
+  </div>
+
+  <!-- Mood evolution -->
+  <div class="section mood-section" th:if="${moodStart != null or moodEnd != null}">
+    <div class="section-title">Estado anímico</div>
+    <div th:if="${moodStart != null}" class="mood-row">
+      <span class="mood-label">Al inicio</span>
+      <div class="mood-track">
+        <div class="mood-fill" th:style="'width:' + (${moodStart} * 10) + '%'"></div>
+      </div>
+      <span class="mood-value" th:text="${moodStart}">5</span>
+      <span style="font-size:9pt;color:#888;">/ 10</span>
+    </div>
+    <div th:if="${moodEnd != null}" class="mood-row">
+      <span class="mood-label">Al finalizar</span>
+      <div class="mood-track">
+        <div class="mood-fill" th:style="'width:' + (${moodEnd} * 10) + '%'"></div>
+      </div>
+      <span class="mood-value" th:text="${moodEnd}">7</span>
+      <span style="font-size:9pt;color:#888;">/ 10</span>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="section">
+    <div class="section-title">Resumen de la sesión</div>
+    <div class="section-body" th:text="${data['sessionSummary']}">Resumen aquí.</div>
+  </div>
+
+  <!-- Main topics -->
+  <div class="section" th:if="${data['mainTopics'] != null and !data['mainTopics'].isEmpty()}">
+    <div class="section-title">Temas principales abordados</div>
+    <div class="tag-list">
+      <span class="tag" th:each="topic : ${data['mainTopics']}" th:text="${topic}">Tema</span>
+    </div>
+  </div>
+
+  <!-- Two-column: emotional state + mood evolution -->
+  <div class="two-col">
+    <div class="section" th:if="${data['emotionalState']}">
+      <div class="section-title">Estado emocional</div>
+      <div class="section-body" th:text="${data['emotionalState']}">Estado aquí.</div>
+    </div>
+    <div class="section" th:if="${data['moodEvolution']}">
+      <div class="section-title">Evolución durante la sesión</div>
+      <div class="section-body" th:text="${data['moodEvolution']}">Evolución aquí.</div>
+    </div>
+  </div>
+
+  <!-- Cognitive patterns -->
+  <div class="section" th:if="${data['cognitivePatternsObserved']}">
+    <div class="section-title">Patrones cognitivos observados</div>
+    <div class="section-body" th:text="${data['cognitivePatternsObserved']}">Patrones aquí.</div>
+  </div>
+
+  <!-- Therapeutic interventions -->
+  <div class="section" th:if="${data['therapeuticInterventions']}">
+    <div class="section-title">Intervenciones terapéuticas aplicadas</div>
+    <div class="section-body" th:text="${data['therapeuticInterventions']}">Intervenciones aquí.</div>
+  </div>
+
+  <!-- Two-column: strengths + areas for work -->
+  <div class="two-col">
+    <div class="section" th:if="${data['patientStrengths']}">
+      <div class="section-title">Fortalezas del paciente</div>
+      <div class="section-body" th:text="${data['patientStrengths']}">Fortalezas aquí.</div>
+    </div>
+    <div class="section" th:if="${data['areasForWork'] != null and !data['areasForWork'].isEmpty()}">
+      <div class="section-title">Áreas a trabajar</div>
+      <div class="tag-list">
+        <span class="tag" th:each="area : ${data['areasForWork']}" th:text="${area}">Área</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress notes -->
+  <div class="section" th:if="${data['progressNotes']}">
+    <div class="section-title">Notas de progreso</div>
+    <div class="section-body" th:text="${data['progressNotes']}">Progreso aquí.</div>
+  </div>
+
+  <!-- Follow-up suggestions -->
+  <div class="section" th:if="${data['followUpSuggestions']}">
+    <div class="section-title">Sugerencias para próximas sesiones</div>
+    <div class="section-body" th:text="${data['followUpSuggestions']}">Sugerencias aquí.</div>
+  </div>
+
+  <!-- Recommendations for professional (highlighted) -->
+  <div class="section" th:if="${data['recommendationsForProfessional']}">
+    <div class="section-title">Recomendaciones para el profesional supervisante</div>
+    <div class="section-body" style="background:#f0eeff;padding:10px 12px;border-radius:4px;border-left:3px solid #6c63ff;"
+         th:text="${data['recommendationsForProfessional']}">Recomendaciones aquí.</div>
+  </div>
+
+  <!-- Risk indicators -->
+  <div class="section" th:if="${data['riskIndicators']}">
+    <div class="section-title">Indicadores de riesgo</div>
+    <div th:class="${data['riskIndicators'].toLowerCase().contains('ninguno') or data['riskIndicators'].toLowerCase().contains('no ') ? 'risk-none' : 'risk-alert'}"
+         th:text="${data['riskIndicators']}">Ninguno detectado.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    TherapyAI · Generado el <span th:text="${generatedAt}"></span> ·
+    Paciente: <span th:text="${patientName}"></span> · Sesión <span th:text="${sessionNumber}"></span> ·
+    Confidencial — Solo para uso de profesionales de salud mental
+  </div>
+
+</body>
+</html>

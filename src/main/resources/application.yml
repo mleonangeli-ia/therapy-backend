@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: therapy-backend
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/therapy_db}
+    username: ${DB_USERNAME:therapy_user}
+    password: ${DB_PASSWORD:therapy_pass}
+    hikari:
+      maximum-pool-size: 50       # supports ~50 concurrent short DB operations
+      minimum-idle: 10
+      connection-timeout: 5000    # fail fast instead of queuing indefinitely
+      idle-timeout: 600000        # 10 min
+      max-lifetime: 1800000       # 30 min — recycle connections before DB closes them
+      keepalive-time: 60000       # heartbeat every 60s to avoid stale connections
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+  task:
+    execution:
+      pool:
+        core-size: 20        # concurrent @Async tasks (TTS, context compression)
+        max-size: 100        # burst capacity
+        queue-capacity: 500  # backlog before rejection
+      thread-name-prefix: therapy-async-
+    scheduling:
+      pool:
+        size: 5
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api/v1
+  error:
+    include-message: never
+    include-stacktrace: never
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:changeme-use-a-long-random-secret-in-production-at-least-256-bits}
+  access-token-expiry-ms: ${JWT_ACCESS_EXPIRY:900000}          # 15 minutes
+  refresh-token-expiry-ms: ${JWT_REFRESH_EXPIRY:2592000000}    # 30 days
+
+# Groq
+groq:
+  api-key: ${GROQ_API_KEY:}
+  model-main: llama-3.3-70b-versatile
+  model-fast: llama-3.1-8b-instant
+
+# Whisper (via Groq — uses groq.api-key)
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  whisper-model: whisper-large-v3-turbo
+
+# ElevenLabs TTS
+elevenlabs:
+  api-key: ${ELEVENLABS_API_KEY:}
+  voice-id: ${ELEVENLABS_VOICE_ID:21m00Tcm4TlvDq8ikWAM}
+
+# MercadoPago
+mercadopago:
+  access-token: ${MP_ACCESS_TOKEN:}
+  webhook-secret: ${MP_WEBHOOK_SECRET:}
+  success-url: ${FRONTEND_URL:http://localhost:3000}/payment/success
+  failure-url: ${FRONTEND_URL:http://localhost:3000}/payment/failure
+  pending-url: ${FRONTEND_URL:http://localhost:3000}/payment/pending
+  notification-url: ${API_BASE_URL:http://localhost:8080}/api/v1/payments/webhook
+
+# AWS
+aws:
+  region: ${AWS_REGION:us-east-1}
+  s3:
+    bucket-audio: ${S3_BUCKET_AUDIO:therapy-audio-dev}
+    bucket-reports: ${S3_BUCKET_REPORTS:therapy-reports-dev}
+
+# Frontend CORS
+app:
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  base-url: ${API_BASE_URL:http://localhost:8080}
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    mail:
+      enabled: false
+
+logging:
+  level:
+    com.therapy: ${LOG_LEVEL:DEBUG}
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
