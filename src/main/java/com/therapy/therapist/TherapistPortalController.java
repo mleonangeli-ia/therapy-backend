@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.OptionalDouble;
 import java.util.UUID;
 
 @RestController
@@ -64,6 +65,62 @@ public class TherapistPortalController {
                 .toList();
         return ResponseEntity.ok(messages);
     }
+
+    @GetMapping("/stats")
+    public ResponseEntity<PlatformStats> getStats() {
+        List<Session> allSessions = sessionRepository.findAll();
+        List<Patient> allPatients = patientRepository.findAll();
+
+        long totalPatients  = allPatients.size();
+        long totalSessions  = allSessions.size();
+        long completed      = allSessions.stream().filter(s -> s.getStatus() == SessionStatus.COMPLETED).count();
+        long inProgress     = allSessions.stream().filter(s -> s.getStatus() == SessionStatus.IN_PROGRESS).count();
+        long abandoned      = allSessions.stream().filter(s -> s.getStatus() == SessionStatus.ABANDONED).count();
+        long crisisCount    = allSessions.stream().filter(Session::isCrisisFlag).count();
+
+        OptionalDouble avgDuration = allSessions.stream()
+                .filter(s -> s.getDurationSeconds() != null)
+                .mapToInt(Session::getDurationSeconds)
+                .average();
+
+        OptionalDouble avgMoodStart = allSessions.stream()
+                .filter(s -> s.getMoodStart() != null)
+                .mapToInt(Session::getMoodStart)
+                .average();
+
+        OptionalDouble avgMoodEnd = allSessions.stream()
+                .filter(s -> s.getMoodEnd() != null)
+                .mapToInt(Session::getMoodEnd)
+                .average();
+
+        long totalTurns = allSessions.stream().mapToLong(Session::getTurnCount).sum();
+
+        return ResponseEntity.ok(new PlatformStats(
+                totalPatients,
+                totalSessions,
+                completed,
+                inProgress,
+                abandoned,
+                crisisCount,
+                avgDuration.isPresent() ? Math.round(avgDuration.getAsDouble()) : null,
+                avgMoodStart.isPresent() ? Math.round(avgMoodStart.getAsDouble() * 10.0) / 10.0 : null,
+                avgMoodEnd.isPresent() ? Math.round(avgMoodEnd.getAsDouble() * 10.0) / 10.0 : null,
+                totalTurns
+        ));
+    }
+
+    public record PlatformStats(
+            long totalPatients,
+            long totalSessions,
+            long completedSessions,
+            long inProgressSessions,
+            long abandonedSessions,
+            long crisisSessions,
+            Long avgDurationSeconds,
+            Double avgMoodStart,
+            Double avgMoodEnd,
+            long totalTurns
+    ) {}
 
     public record PatientSummary(UUID id, String fullName, String email, String createdAt, boolean isActive) {}
 }
