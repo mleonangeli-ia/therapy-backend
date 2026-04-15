@@ -109,6 +109,22 @@ public class TherapistPortalController {
         ));
     }
 
+    @GetMapping("/patients/countries")
+    public ResponseEntity<List<CountryStat>> getPatientsByCountry() {
+        List<CountryStat> stats = patientRepository.findAll().stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        p -> p.getCountryCode() != null ? p.getCountryCode() : "AR",
+                        java.util.stream.Collectors.counting()
+                ))
+                .entrySet().stream()
+                .map(e -> new CountryStat(e.getKey(), e.getValue()))
+                .sorted((a, b) -> Long.compare(b.count(), a.count()))
+                .toList();
+        return ResponseEntity.ok(stats);
+    }
+
+    public record CountryStat(String countryCode, long count) {}
+
     public record PlatformStats(
             long totalPatients,
             long totalSessions,

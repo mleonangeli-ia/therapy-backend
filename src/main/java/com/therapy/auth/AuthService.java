@@ -40,6 +40,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final EmailService emailService;
+    private final com.therapy.common.GeoService geoService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request, String ipAddress, String userAgent) {
@@ -47,12 +48,16 @@ public class AuthService {
             throw AppException.conflict("El email ya está registrado");
         }
 
+        String countryCode = (request.getCountryCode() != null && !request.getCountryCode().isBlank())
+                ? request.getCountryCode()
+                : geoService.countryCodeFromIp(ipAddress);
+
         Patient patient = Patient.builder()
                 .email(request.getEmail().toLowerCase())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
                 .phone(request.getPhone())
-                .countryCode(request.getCountryCode())
+                .countryCode(countryCode)
                 .build();
 
         patient = patientRepository.save(patient);
@@ -84,6 +89,9 @@ public class AuthService {
         patient.setFailedLoginAttempts(0);
         patient.setLockedUntil(null);
         patient.setLastLoginAt(OffsetDateTime.now());
+        // Update country from IP on every login
+        String countryCode = geoService.countryCodeFromIp(ipAddress);
+        patient.setCountryCode(countryCode);
         patientRepository.save(patient);
 
         auditService.log("PATIENT_LOGIN", patient.getId(), "patient", patient.getId(), ipAddress, userAgent);
