@@ -3,6 +3,8 @@ package com.therapy.auth.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 @Data
 public class RegisterRequest {
 
@@ -21,6 +23,9 @@ public class RegisterRequest {
     @NotBlank
     @Size(min = 2, max = 255, message = "El nombre debe tener entre 2 y 255 caracteres")
     private String fullName;
+
+    @NotNull(message = "La fecha de nacimiento es obligatoria")
+    private LocalDate dateOfBirth;
 
     @Size(max = 50)
     private String phone;

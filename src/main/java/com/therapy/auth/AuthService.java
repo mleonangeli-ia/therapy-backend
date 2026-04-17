@@ -48,6 +48,10 @@ public class AuthService {
             throw AppException.conflict("El email ya está registrado");
         }
 
+        if (request.getDateOfBirth().plusYears(18).isAfter(java.time.LocalDate.now())) {
+            throw AppException.badRequest("Debés tener al menos 18 años para registrarte");
+        }
+
         String countryCode = (request.getCountryCode() != null && !request.getCountryCode().isBlank())
                 ? request.getCountryCode()
                 : geoService.countryCodeFromIp(ipAddress);
@@ -56,6 +60,7 @@ public class AuthService {
                 .email(request.getEmail().toLowerCase())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .fullName(request.getFullName())
+                .dateOfBirth(request.getDateOfBirth())
                 .phone(request.getPhone())
                 .countryCode(countryCode)
                 .build();
