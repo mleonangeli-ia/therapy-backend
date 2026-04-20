@@ -61,13 +61,15 @@ public class AppointmentController {
         return ResponseEntity.ok(appointmentService.getUnassigned());
     }
 
-    /** Therapist claims an unassigned appointment */
+    /** Assign an unassigned appointment to a specific therapist */
     @PatchMapping("/therapist/portal/appointments/{id}/claim")
     @PreAuthorize("hasRole('THERAPIST')")
     public ResponseEntity<AppointmentResponse> claim(
             @PathVariable UUID id,
-            @AuthenticationPrincipal UUID therapistId) {
-        return ResponseEntity.ok(appointmentService.claim(id, therapistId));
+            @AuthenticationPrincipal UUID currentTherapistId,
+            @RequestParam(required = false) UUID assignTo) {
+        UUID targetId = assignTo != null ? assignTo : currentTherapistId;
+        return ResponseEntity.ok(appointmentService.claim(id, targetId));
     }
 
     @PatchMapping("/therapist/portal/appointments/{id}/confirm")

@@ -26,6 +26,7 @@ public class TherapistPortalController {
     private final SessionMessageRepository messageRepository;
     private final SessionService sessionService;
     private final ReportService reportService;
+    private final TherapistRepository therapistRepository;
 
     @GetMapping("/patients")
     public ResponseEntity<List<PatientSummary>> getAllPatients() {
@@ -133,6 +134,18 @@ public class TherapistPortalController {
                 .toList();
         return ResponseEntity.ok(stats);
     }
+
+    @GetMapping("/therapists")
+    public ResponseEntity<List<TherapistSummary>> listTherapists() {
+        List<TherapistSummary> list = therapistRepository.findAll().stream()
+                .filter(Therapist::isActive)
+                .filter(t -> t.getLicenseNumber() != null && !t.getLicenseNumber().isBlank())
+                .map(t -> new TherapistSummary(t.getId(), t.getFullName(), t.getLicenseNumber()))
+                .toList();
+        return ResponseEntity.ok(list);
+    }
+
+    public record TherapistSummary(UUID id, String fullName, String licenseNumber) {}
 
     public record CountryStat(String countryCode, long count) {}
 
