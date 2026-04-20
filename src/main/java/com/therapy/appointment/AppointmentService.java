@@ -42,9 +42,10 @@ public class AppointmentService {
             throw AppException.badRequest("El pack no está activo");
         }
 
-        // Pick first active therapist (single-therapist MVP)
+        // Pick first active licensed therapist (single-therapist MVP)
         Therapist therapist = therapistRepository.findAll().stream()
                 .filter(Therapist::isActive)
+                .filter(t -> t.getLicenseNumber() != null && !t.getLicenseNumber().isBlank())
                 .findFirst()
                 .orElseThrow(() -> new AppException(
                         "No hay terapeutas disponibles en este momento",
