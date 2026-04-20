@@ -2,6 +2,7 @@ package com.therapy.therapist;
 
 import com.therapy.patient.Patient;
 import com.therapy.patient.PatientRepository;
+import com.therapy.report.ReportService;
 import com.therapy.session.*;
 import com.therapy.session.dto.MessageResponse;
 import com.therapy.session.dto.SessionResponse;
@@ -24,6 +25,7 @@ public class TherapistPortalController {
     private final SessionRepository sessionRepository;
     private final SessionMessageRepository messageRepository;
     private final SessionService sessionService;
+    private final ReportService reportService;
 
     @GetMapping("/patients")
     public ResponseEntity<List<PatientSummary>> getAllPatients() {
@@ -107,6 +109,15 @@ public class TherapistPortalController {
                 avgMoodEnd.isPresent() ? Math.round(avgMoodEnd.getAsDouble() * 10.0) / 10.0 : null,
                 totalTurns
         ));
+    }
+
+    @GetMapping("/sessions/{sessionId}/clinical-report")
+    public ResponseEntity<java.util.Map<String, Object>> getClinicalReport(@PathVariable UUID sessionId) {
+        java.util.Map<String, Object> data = reportService.getClinicalAnalysis(sessionId);
+        if (data == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(data);
     }
 
     @GetMapping("/patients/countries")

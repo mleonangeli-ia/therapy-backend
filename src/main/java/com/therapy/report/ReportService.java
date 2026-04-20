@@ -1,6 +1,8 @@
 package com.therapy.report;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.therapy.audio.StorageService;
+import com.therapy.claude.ClaudeApiClient;
 import com.therapy.common.exception.AppException;
 import com.therapy.report.dto.ReportResponse;
 import com.therapy.session.*;
@@ -25,13 +27,35 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReportService {
 
-    // Reports are now transcript-only — no Claude analysis needed
+    private static final String CLINICAL_SYSTEM_PROMPT = """
+            Sos un psicólogo clínico supervisando sesiones de acompañamiento terapéutico conducidas por IA.
+            Analizá la sesión completa y generá un reporte estructurado en JSON con exactamente estas claves:
 
+            {
+              "sessionSummary": "Resumen narrativo de 3-4 oraciones de lo trabajado en la sesión",
+              "mainTopics": ["tema1", "tema2", "tema3"],
+              "emotionalState": "Descripción del estado emocional inicial y final del paciente",
+              "moodEvolution": "Análisis de la evolución anímica durante la sesión",
+              "cognitivePatternsObserved": "Patrones cognitivos identificados (distorsiones, creencias limitantes, etc.)",
+              "therapeuticInterventions": "Técnicas y estrategias aplicadas durante la sesión",
+              "patientStrengths": "Fortalezas y recursos del paciente observados",
+              "areasForWork": ["área1", "área2"],
+              "progressNotes": "Avances observados respecto a sesiones anteriores (si hay contexto disponible)",
+              "recommendationsForProfessional": "Sugerencias específicas para el profesional supervisante",
+              "riskIndicators": "Ninguno detectado / descripción si hay indicadores de riesgo",
+              "followUpSuggestions": "Temas a retomar en próximas sesiones"
+            }
+
+            Respondé SOLO con el JSON, sin texto adicional. Usá español argentino formal.
+            """;
+
+    private final ClaudeApiClient claudeApiClient;
     private final StorageService storageService;
     private final SessionRepository sessionRepository;
     private final SessionMessageRepository messageRepository;
     private final SessionReportRepository reportRepository;
     private final TemplateEngine templateEngine;
+    private final ObjectMapper objectMapper;
 
     /**
      * Creates a PENDING report record for a session.
@@ -101,23 +125,29 @@ public class ReportService {
             List<SessionMessage> messages = messageRepository
                     .findBySessionIdOrderBySequenceNumberAsc(session.getId());
 
-            // Build transcript entries for the template
+            // Build transcript entries for the patient PDF
             List<Map<String, String>> transcript = buildTranscriptEntries(messages);
 
-            // Render HTML template with Thymeleaf
+            // Render transcript PDF for patient
             Context ctx = buildThymeleafContext(session, report, transcript);
             String html = templateEngine.process("session-report", ctx);
-
-            // Convert HTML → PDF with Flying Saucer
             byte[] pdfBytes = renderPdf(html);
-
-            // Store PDF
             String key = storageService.storeReport(pdfBytes, session.getPatient().getId(), session.getId());
+
+            // Generate clinical analysis for therapist (stored in reportDataEnc)
+            String clinicalJson = null;
+            try {
+                String transcriptText = buildTranscriptText(messages);
+                clinicalJson = claudeApiClient.compressSync(CLINICAL_SYSTEM_PROMPT, transcriptText);
+            } catch (Exception e) {
+                log.warn("Clinical analysis failed for session {}, report will have no analysis", session.getId(), e);
+            }
 
             // Update report record
             report.setStatus(SessionReport.Status.COMPLETED);
             report.setS3Key(key);
             report.setGeneratedAt(OffsetDateTime.now());
+            report.setReportDataEnc(clinicalJson);
             reportRepository.save(report);
 
             log.info("Report generated for session {} — {} bytes", session.getId(), pdfBytes.length);
@@ -167,7 +197,43 @@ public class ReportService {
         return storageService.getReportBytes(report.getS3Key());
     }
 
+    /**
+     * Returns parsed clinical analysis data for a session (therapist portal).
+     * Returns null if no analysis is available.
+     */
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> getClinicalAnalysis(UUID sessionId) {
+        return reportRepository.findBySessionId(sessionId)
+                .filter(r -> r.getReportDataEnc() != null)
+                .map(r -> {
+                    try {
+                        String json = r.getReportDataEnc().trim();
+                        if (json.startsWith("```")) {
+                            json = json.replaceAll("^```[a-z]*\n?", "").replaceAll("```$", "").trim();
+                        }
+                        return (Map<String, Object>) objectMapper.readValue(json, Map.class);
+                    } catch (Exception e) {
+                        log.warn("Could not parse clinical data for session {}", sessionId, e);
+                        return null;
+                    }
+                })
+                .orElse(null);
+    }
+
     // ── Internals ──────────────────────────────────────────────────────────────
+
+    private String buildTranscriptText(List<SessionMessage> messages) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("TRANSCRIPCIÓN DE SESIÓN TERAPÉUTICA\n\n");
+        for (SessionMessage msg : messages) {
+            if (msg.getRole() == SessionMessage.Role.SYSTEM) continue;
+            String speaker = msg.getRole() == SessionMessage.Role.PATIENT ? "Paciente" : "Terapeuta IA";
+            String text = msg.getContentTextEnc() != null ? msg.getContentTextEnc() : "[audio sin transcripción]";
+            sb.append("[").append(speaker).append("]: ").append(text).append("\n\n");
+        }
+        return sb.toString();
+    }
 
     private List<Map<String, String>> buildTranscriptEntries(List<SessionMessage> messages) {
         List<Map<String, String>> entries = new ArrayList<>();
