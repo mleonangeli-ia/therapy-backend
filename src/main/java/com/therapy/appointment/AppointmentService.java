@@ -2,6 +2,7 @@ package com.therapy.appointment;
 
 import com.therapy.appointment.dto.AppointmentResponse;
 import com.therapy.appointment.dto.CreateAppointmentRequest;
+import com.therapy.appointment.dto.UpdateAppointmentRequest;
 import com.therapy.common.exception.AppException;
 import com.therapy.pack.Pack;
 import com.therapy.pack.PackRepository;
@@ -85,6 +86,33 @@ public class AppointmentService {
 
         appt.setTherapist(therapist);
         appt.setStatus(AppointmentStatus.CONFIRMED);
+        return toResponse(appointmentRepository.save(appt));
+    }
+
+    @Transactional
+    public AppointmentResponse update(UUID appointmentId, UpdateAppointmentRequest req) {
+        Appointment appt = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> AppException.notFound("Turno"));
+
+        if (appt.getStatus() == AppointmentStatus.CANCELLED) {
+            throw AppException.badRequest("No se puede modificar un turno cancelado");
+        }
+
+        if (req.getScheduledAt() != null) {
+            appt.setScheduledAt(req.getScheduledAt());
+        }
+        if (req.getDurationMinutes() != null) {
+            appt.setDurationMinutes(req.getDurationMinutes());
+        }
+        if (req.getNotes() != null) {
+            appt.setNotes(req.getNotes());
+        }
+        if (req.getTherapistId() != null) {
+            var therapist = therapistRepository.findById(req.getTherapistId())
+                    .orElseThrow(() -> AppException.notFound("Terapeuta"));
+            appt.setTherapist(therapist);
+        }
+
         return toResponse(appointmentRepository.save(appt));
     }
 

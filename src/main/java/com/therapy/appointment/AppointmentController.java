@@ -2,6 +2,7 @@ package com.therapy.appointment;
 
 import com.therapy.appointment.dto.AppointmentResponse;
 import com.therapy.appointment.dto.CreateAppointmentRequest;
+import com.therapy.appointment.dto.UpdateAppointmentRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -70,6 +71,15 @@ public class AppointmentController {
             @RequestParam(required = false) UUID assignTo) {
         UUID targetId = assignTo != null ? assignTo : currentTherapistId;
         return ResponseEntity.ok(appointmentService.claim(id, targetId));
+    }
+
+    /** Update appointment details (date, time, therapist, notes) */
+    @PatchMapping("/therapist/portal/appointments/{id}")
+    @PreAuthorize("hasRole('THERAPIST')")
+    public ResponseEntity<AppointmentResponse> update(
+            @PathVariable UUID id,
+            @RequestBody UpdateAppointmentRequest request) {
+        return ResponseEntity.ok(appointmentService.update(id, request));
     }
 
     @PatchMapping("/therapist/portal/appointments/{id}/confirm")
