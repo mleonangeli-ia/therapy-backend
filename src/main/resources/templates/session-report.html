@@ -8,7 +8,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 11pt;
+      font-size: 10.5pt;
       color: #1a1a2e;
       line-height: 1.55;
       background: #ffffff;
@@ -17,14 +17,14 @@
     /* ── Page layout ────────────────────────────────────────── */
     @page {
       size: A4;
-      margin: 2.2cm 2cm 2.5cm 2cm;
+      margin: 2cm 2cm 2.5cm 2cm;
     }
 
     /* ── Header ─────────────────────────────────────────────── */
     .header {
       border-bottom: 3px solid #6c63ff;
       padding-bottom: 14px;
-      margin-bottom: 22px;
+      margin-bottom: 20px;
     }
     .header-top {
       display: flex;
@@ -53,17 +53,6 @@
       color: #1a1a2e;
     }
 
-    /* ── Disclaimer ─────────────────────────────────────────── */
-    .disclaimer {
-      background: #fff8e1;
-      border-left: 4px solid #ffc107;
-      padding: 8px 12px;
-      font-size: 9pt;
-      color: #5d4037;
-      border-radius: 2px;
-      margin-bottom: 20px;
-    }
-
     /* ── Patient info ───────────────────────────────────────── */
     .info-grid {
       display: grid;
@@ -72,7 +61,7 @@
       background: #f7f7fb;
       border-radius: 6px;
       padding: 14px 16px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .info-item label {
       font-size: 8.5pt;
@@ -87,8 +76,16 @@
     }
 
     /* ── Mood bar ────────────────────────────────────────────── */
-    .mood-section {
-      margin-bottom: 24px;
+    .mood-section { margin-bottom: 20px; }
+    .mood-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #6c63ff;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e8e4ff;
     }
     .mood-row {
       display: flex;
@@ -111,13 +108,9 @@
     }
     .mood-value { font-weight: 700; font-size: 10pt; width: 24px; }
 
-    /* ── Sections ───────────────────────────────────────────── */
-    .section {
-      margin-bottom: 20px;
-      page-break-inside: avoid;
-    }
-    .section-title {
-      font-size: 10.5pt;
+    /* ── Transcript ─────────────────────────────────────────── */
+    .transcript-title {
+      font-size: 10pt;
       font-weight: 700;
       color: #6c63ff;
       text-transform: uppercase;
@@ -126,38 +119,42 @@
       padding-bottom: 4px;
       border-bottom: 1px solid #e8e4ff;
     }
-    .section-body {
-      font-size: 10.5pt;
-      color: #333;
-    }
-
-    /* ── Tag list ───────────────────────────────────────────── */
-    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-    .tag {
-      background: #ede9fe;
-      color: #5b21b6;
-      padding: 3px 10px;
-      border-radius: 20px;
+    .transcript-info {
       font-size: 9pt;
-      font-weight: 500;
+      color: #888;
+      margin-bottom: 14px;
     }
-
-    /* ── Risk indicator ─────────────────────────────────────── */
-    .risk-none {
-      background: #e6f7ee;
-      color: #1e7e4a;
-      border-left: 4px solid #28a745;
-      padding: 7px 12px;
-      border-radius: 2px;
-      font-size: 10pt;
+    .msg {
+      margin-bottom: 12px;
+      page-break-inside: avoid;
     }
-    .risk-alert {
-      background: #fff3f3;
-      color: #b91c1c;
-      border-left: 4px solid #ef4444;
-      padding: 7px 12px;
-      border-radius: 2px;
+    .msg-header {
+      font-size: 9pt;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .msg-header .time {
+      font-weight: 400;
+      color: #aaa;
+      margin-left: 6px;
+    }
+    .msg-patient .msg-header { color: #2563eb; }
+    .msg-assistant .msg-header { color: #6c63ff; }
+    .msg-body {
       font-size: 10pt;
+      color: #333;
+      padding: 8px 12px;
+      border-radius: 6px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .msg-patient .msg-body {
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+    }
+    .msg-assistant .msg-body {
+      background: #f5f3ff;
+      border-left: 3px solid #6c63ff;
     }
 
     /* ── Footer ─────────────────────────────────────────────── */
@@ -171,13 +168,6 @@
       padding: 10px 20px;
       border-top: 1px solid #eee;
     }
-
-    /* ── Two-column layout for some sections ────────────────── */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
   </style>
 </head>
 <body>
@@ -187,21 +177,14 @@
     <div class="header-top">
       <div>
         <div class="brand">TherapyAI</div>
-        <div class="brand-sub">Plataforma de acompañamiento terapéutico con IA</div>
+        <div class="brand-sub">Transcripción de sesión terapéutica</div>
       </div>
       <div class="header-meta">
         <div class="session-label" th:text="'Sesión ' + ${sessionNumber}">Sesión 1</div>
         <div th:text="${generatedAt}">1 de enero 2025 a las 10:00</div>
-        <div style="color:#aaa;margin-top:2px;">CONFIDENCIAL — Para uso profesional</div>
+        <div style="color:#aaa;margin-top:2px;">CONFIDENCIAL</div>
       </div>
     </div>
-  </div>
-
-  <!-- Disclaimer -->
-  <div class="disclaimer">
-    <strong>Aviso importante:</strong> Este reporte fue generado automáticamente por IA y está
-    destinado exclusivamente para revisión por un profesional de salud mental licenciado.
-    <strong>No constituye diagnóstico clínico ni recomendación terapéutica.</strong>
   </div>
 
   <!-- Patient + session info -->
@@ -212,7 +195,7 @@
     </div>
     <div class="info-item">
       <label>Número de sesión</label>
-      <span th:text="${sessionNumber} + ' de 10'">1 de 10</span>
+      <span th:text="${sessionNumber}">1</span>
     </div>
     <div class="info-item" th:if="${session.startedAt}">
       <label>Fecha de sesión</label>
@@ -225,8 +208,8 @@
   </div>
 
   <!-- Mood evolution -->
-  <div class="section mood-section" th:if="${moodStart != null or moodEnd != null}">
-    <div class="section-title">Estado anímico</div>
+  <div class="mood-section" th:if="${moodStart != null or moodEnd != null}">
+    <div class="mood-title">Estado anímico</div>
     <div th:if="${moodStart != null}" class="mood-row">
       <span class="mood-label">Al inicio</span>
       <div class="mood-track">
@@ -245,89 +228,24 @@
     </div>
   </div>
 
-  <!-- Summary -->
-  <div class="section">
-    <div class="section-title">Resumen de la sesión</div>
-    <div class="section-body" th:text="${data['sessionSummary']}">Resumen aquí.</div>
-  </div>
+  <!-- Transcript -->
+  <div class="transcript-title">Conversación</div>
+  <div class="transcript-info" th:text="${messageCount} + ' mensajes'">12 mensajes</div>
 
-  <!-- Main topics -->
-  <div class="section" th:if="${data['mainTopics'] != null and !data['mainTopics'].isEmpty()}">
-    <div class="section-title">Temas principales abordados</div>
-    <div class="tag-list">
-      <span class="tag" th:each="topic : ${data['mainTopics']}" th:text="${topic}">Tema</span>
+  <div th:each="entry : ${transcript}"
+       th:class="'msg ' + (${entry.role} == 'PATIENT' ? 'msg-patient' : 'msg-assistant')">
+    <div class="msg-header">
+      <span th:text="${entry.speaker}">Paciente</span>
+      <span class="time" th:text="${entry.time}">14:30</span>
     </div>
-  </div>
-
-  <!-- Two-column: emotional state + mood evolution -->
-  <div class="two-col">
-    <div class="section" th:if="${data['emotionalState']}">
-      <div class="section-title">Estado emocional</div>
-      <div class="section-body" th:text="${data['emotionalState']}">Estado aquí.</div>
-    </div>
-    <div class="section" th:if="${data['moodEvolution']}">
-      <div class="section-title">Evolución durante la sesión</div>
-      <div class="section-body" th:text="${data['moodEvolution']}">Evolución aquí.</div>
-    </div>
-  </div>
-
-  <!-- Cognitive patterns -->
-  <div class="section" th:if="${data['cognitivePatternsObserved']}">
-    <div class="section-title">Patrones cognitivos observados</div>
-    <div class="section-body" th:text="${data['cognitivePatternsObserved']}">Patrones aquí.</div>
-  </div>
-
-  <!-- Therapeutic interventions -->
-  <div class="section" th:if="${data['therapeuticInterventions']}">
-    <div class="section-title">Intervenciones terapéuticas aplicadas</div>
-    <div class="section-body" th:text="${data['therapeuticInterventions']}">Intervenciones aquí.</div>
-  </div>
-
-  <!-- Two-column: strengths + areas for work -->
-  <div class="two-col">
-    <div class="section" th:if="${data['patientStrengths']}">
-      <div class="section-title">Fortalezas del paciente</div>
-      <div class="section-body" th:text="${data['patientStrengths']}">Fortalezas aquí.</div>
-    </div>
-    <div class="section" th:if="${data['areasForWork'] != null and !data['areasForWork'].isEmpty()}">
-      <div class="section-title">Áreas a trabajar</div>
-      <div class="tag-list">
-        <span class="tag" th:each="area : ${data['areasForWork']}" th:text="${area}">Área</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Progress notes -->
-  <div class="section" th:if="${data['progressNotes']}">
-    <div class="section-title">Notas de progreso</div>
-    <div class="section-body" th:text="${data['progressNotes']}">Progreso aquí.</div>
-  </div>
-
-  <!-- Follow-up suggestions -->
-  <div class="section" th:if="${data['followUpSuggestions']}">
-    <div class="section-title">Sugerencias para próximas sesiones</div>
-    <div class="section-body" th:text="${data['followUpSuggestions']}">Sugerencias aquí.</div>
-  </div>
-
-  <!-- Recommendations for professional (highlighted) -->
-  <div class="section" th:if="${data['recommendationsForProfessional']}">
-    <div class="section-title">Recomendaciones para el profesional supervisante</div>
-    <div class="section-body" style="background:#f0eeff;padding:10px 12px;border-radius:4px;border-left:3px solid #6c63ff;"
-         th:text="${data['recommendationsForProfessional']}">Recomendaciones aquí.</div>
-  </div>
-
-  <!-- Risk indicators -->
-  <div class="section" th:if="${data['riskIndicators']}">
-    <div class="section-title">Indicadores de riesgo</div>
-    <div th:class="${data['riskIndicators'].toLowerCase().contains('ninguno') or data['riskIndicators'].toLowerCase().contains('no ') ? 'risk-none' : 'risk-alert'}"
-         th:text="${data['riskIndicators']}">Ninguno detectado.</div>
+    <div class="msg-body" th:text="${entry.text}">Mensaje aquí.</div>
   </div>
 
   <!-- Footer -->
   <div class="footer">
     TherapyAI · Generado el <span th:text="${generatedAt}"></span> ·
     Paciente: <span th:text="${patientName}"></span> · Sesión <span th:text="${sessionNumber}"></span> ·
-    Confidencial — Solo para uso de profesionales de salud mental
+    Confidencial
   </div>
 
 </body>
