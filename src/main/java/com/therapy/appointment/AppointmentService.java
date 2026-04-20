@@ -8,10 +8,8 @@ import com.therapy.pack.PackRepository;
 import com.therapy.pack.PackStatus;
 import com.therapy.patient.Patient;
 import com.therapy.patient.PatientRepository;
-import com.therapy.therapist.Therapist;
 import com.therapy.therapist.TherapistRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,20 +40,13 @@ public class AppointmentService {
             throw AppException.badRequest("El pack no está activo");
         }
 
-        // Pick first active licensed therapist (single-therapist MVP)
-        Therapist therapist = therapistRepository.findAll().stream()
-                .filter(Therapist::isActive)
-                .filter(t -> t.getLicenseNumber() != null && !t.getLicenseNumber().isBlank())
-                .findFirst()
-                .orElseThrow(() -> new AppException(
-                        "No hay terapeutas disponibles en este momento",
-                        HttpStatus.SERVICE_UNAVAILABLE, "NO_THERAPIST"));
-
+        // No therapist assigned yet — therapist claims from portal
         Appointment appointment = Appointment.builder()
                 .pack(pack)
                 .patient(patient)
-                .therapist(therapist)
+                .therapist(null)
                 .scheduledAt(req.getScheduledAt())
+                .status(AppointmentStatus.PENDING)
                 .notes(req.getNotes())
                 .build();
 
@@ -73,13 +64,37 @@ public class AppointmentService {
                 .stream().map(this::toResponse).toList();
     }
 
+    /** All unassigned appointments — visible to all therapists */
+    public List<AppointmentResponse> getUnassigned() {
+        return appointmentRepository.findByTherapistIsNullOrderByScheduledAtAsc()
+                .stream().map(this::toResponse).toList();
+    }
+
+    /** Therapist claims an unassigned appointment */
+    @Transactional
+    public AppointmentResponse claim(UUID appointmentId, UUID therapistId) {
+        Appointment appt = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> AppException.notFound("Turno"));
+
+        if (appt.getTherapist() != null) {
+            throw AppException.badRequest("Este turno ya fue tomado por otro profesional");
+        }
+
+        var therapist = therapistRepository.findById(therapistId)
+                .orElseThrow(() -> AppException.notFound("Terapeuta"));
+
+        appt.setTherapist(therapist);
+        appt.setStatus(AppointmentStatus.CONFIRMED);
+        return toResponse(appointmentRepository.save(appt));
+    }
+
     @Transactional
     public AppointmentResponse cancel(UUID appointmentId, UUID principalId) {
         Appointment appt = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> AppException.notFound("Turno"));
 
         boolean isOwner = appt.getPatient().getId().equals(principalId)
-                || appt.getTherapist().getId().equals(principalId);
+                || (appt.getTherapist() != null && appt.getTherapist().getId().equals(principalId));
         if (!isOwner) {
             throw AppException.forbidden();
         }
@@ -96,8 +111,15 @@ public class AppointmentService {
         Appointment appt = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> AppException.notFound("Turno"));
 
-        if (!appt.getTherapist().getId().equals(therapistId)) {
+        if (appt.getTherapist() != null && !appt.getTherapist().getId().equals(therapistId)) {
             throw AppException.forbidden();
+        }
+
+        // Also assign therapist if not yet assigned
+        if (appt.getTherapist() == null) {
+            var therapist = therapistRepository.findById(therapistId)
+                    .orElseThrow(() -> AppException.notFound("Terapeuta"));
+            appt.setTherapist(therapist);
         }
 
         appt.setStatus(AppointmentStatus.CONFIRMED);
@@ -112,8 +134,8 @@ public class AppointmentService {
                 .patientId(a.getPatient().getId())
                 .patientName(a.getPatient().getFullName())
                 .patientEmail(a.getPatient().getEmail())
-                .therapistId(a.getTherapist().getId())
-                .therapistName(a.getTherapist().getFullName())
+                .therapistId(a.getTherapist() != null ? a.getTherapist().getId() : null)
+                .therapistName(a.getTherapist() != null ? a.getTherapist().getFullName() : null)
                 .scheduledAt(a.getScheduledAt())
                 .durationMinutes(a.getDurationMinutes())
                 .status(a.getStatus().name())

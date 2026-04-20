@@ -16,4 +16,6 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             UUID therapistId, OffsetDateTime from, OffsetDateTime to);
 
     List<Appointment> findByPackId(UUID packId);
+
+    List<Appointment> findByTherapistIsNullOrderByScheduledAtAsc();
 }

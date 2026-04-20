@@ -46,11 +46,28 @@ public class AppointmentController {
 
     // ── Therapist endpoints ──
 
+    /** Appointments assigned to this therapist */
     @GetMapping("/therapist/portal/appointments")
     @PreAuthorize("hasRole('THERAPIST')")
     public ResponseEntity<List<AppointmentResponse>> therapistAppointments(
             @AuthenticationPrincipal UUID therapistId) {
         return ResponseEntity.ok(appointmentService.getByTherapist(therapistId));
+    }
+
+    /** Unassigned appointments — any therapist can see and claim */
+    @GetMapping("/therapist/portal/appointments/unassigned")
+    @PreAuthorize("hasRole('THERAPIST')")
+    public ResponseEntity<List<AppointmentResponse>> unassignedAppointments() {
+        return ResponseEntity.ok(appointmentService.getUnassigned());
+    }
+
+    /** Therapist claims an unassigned appointment */
+    @PatchMapping("/therapist/portal/appointments/{id}/claim")
+    @PreAuthorize("hasRole('THERAPIST')")
+    public ResponseEntity<AppointmentResponse> claim(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UUID therapistId) {
+        return ResponseEntity.ok(appointmentService.claim(id, therapistId));
     }
 
     @PatchMapping("/therapist/portal/appointments/{id}/confirm")
