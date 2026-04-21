@@ -57,6 +57,11 @@ spring:
       pool:
         size: 5
 
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
   jackson:
     serialization:
       write-dates-as-timestamps: false

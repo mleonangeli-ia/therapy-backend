@@ -1,6 +1,7 @@
 package com.therapy.ai;
 
 import com.therapy.claude.ClaudeMessage;
+import com.therapy.knowledge.KnowledgeChunk;
 import com.therapy.session.SessionContext;
 import com.therapy.session.SessionMessage;
 import org.springframework.stereotype.Component;
@@ -85,7 +86,8 @@ public class TherapeuticPromptBuilder {
             """;
 
     public String buildSystemPrompt(String patientName, int sessionNumber, int totalSessions,
-                                     List<SessionContext> previousContexts) {
+                                     List<SessionContext> previousContexts,
+                                     List<KnowledgeChunk> knowledgeChunks) {
         StringBuilder sb = new StringBuilder(SYSTEM_PROMPT_BASE);
 
         sb.append("\n\n--- INFORMACIÓN DEL PACIENTE ---\n");
@@ -132,6 +134,23 @@ public class TherapeuticPromptBuilder {
         if (sessionNumber == totalSessions) {
             sb.append("\n⚠️ Esta es la ÚLTIMA sesión del pack actual. " +
                       "Hacia el final, hacé una síntesis del proceso y explorá la continuidad.\n");
+        }
+
+        // Inject RAG knowledge context — responses are restricted to this material
+        if (knowledgeChunks != null && !knowledgeChunks.isEmpty()) {
+            sb.append("\n--- BASE DE CONOCIMIENTO TERAPÉUTICO (OBLIGATORIA) ---\n");
+            sb.append("RESTRICCIÓN ESTRICTA: Basá tus intervenciones terapéuticas EXCLUSIVAMENTE en las ");
+            sb.append("técnicas, conceptos y enfoques contenidos en la siguiente base de conocimiento. ");
+            sb.append("Esta base proviene de material profesional validado (DBT y Entrevista Motivacional). ");
+            sb.append("NO inventes técnicas ni agregues información que no esté respaldada por este material. ");
+            sb.append("Si el paciente plantea un tema que no está cubierto por estas referencias, ");
+            sb.append("respondé con empatía validando su experiencia, pero redirigí la intervención hacia ");
+            sb.append("las herramientas y técnicas que sí están en tu base de conocimiento. ");
+            sb.append("Integrá el contenido de forma natural, sin citar textualmente:\n\n");
+            for (int i = 0; i < knowledgeChunks.size(); i++) {
+                sb.append("[Referencia ").append(i + 1).append("]\n");
+                sb.append(knowledgeChunks.get(i).getContent()).append("\n\n");
+            }
         }
 
         return sb.toString();

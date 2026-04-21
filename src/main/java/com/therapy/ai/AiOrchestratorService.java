@@ -3,6 +3,8 @@ package com.therapy.ai;
 import com.therapy.audio.AudioService;
 import com.therapy.claude.ClaudeApiClient;
 import com.therapy.claude.ClaudeMessage;
+import com.therapy.knowledge.KnowledgeChunk;
+import com.therapy.knowledge.KnowledgeService;
 import com.therapy.session.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +50,7 @@ public class AiOrchestratorService {
     private final SessionPersistenceService persistence;
     private final SessionContextService     contextService;
     private final TherapeuticPromptBuilder  promptBuilder;
+    private final KnowledgeService          knowledgeService;
     private final SimpMessagingTemplate     messagingTemplate;
     private final StringRedisTemplate       redisTemplate;
 
@@ -89,11 +92,22 @@ public class AiOrchestratorService {
             List<SessionContext> previousContexts =
                     contextService.loadPreviousContexts(patientId);
 
+            // 4b. RAG: search knowledge base for relevant therapeutic content
+            List<KnowledgeChunk> knowledgeChunks = List.of();
+            if (knowledgeService.hasKnowledgeBase()) {
+                try {
+                    knowledgeChunks = knowledgeService.searchRelevantChunks(messageText);
+                } catch (Exception e) {
+                    log.warn("Knowledge search failed, continuing without RAG context", e);
+                }
+            }
+
             String systemPrompt = promptBuilder.buildSystemPrompt(
                     session.getPatient().getFullName(),
                     session.getSessionNumber(),
                     session.getPack().getSessionsTotal(),
-                    previousContexts);
+                    previousContexts,
+                    knowledgeChunks);
 
             if (crisisScore >= CRISIS_THRESHOLD_CAUTION) {
                 systemPrompt += promptBuilder.buildCrisisResponseAddendum();
